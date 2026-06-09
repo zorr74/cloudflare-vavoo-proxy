@@ -182,9 +182,13 @@ class VavooExtractor {
       const signature = await this.getAuthSignature(clientIP);
       const streamUrl = await this.resolveStream(url, signature, clientIP);
 
+      // Workaround: il CDN finale di Vavoo ha cert SSL scaduto (Apr 23 2026).
+      // Forziamo HTTP, il CDN risponde anche in cleartext.
+      const finalUrl = streamUrl.replace(/^https:\/\//, 'http://');
+
       return new Response(null, {
           status: 302,
-          headers: { ...CORS_HEADERS, 'Location': streamUrl },
+          headers: { ...CORS_HEADERS, 'Location': finalUrl },
       });
   }
 }
@@ -322,7 +326,7 @@ function handleInfoPage(request) {
           <div class="card">
               <h3 class="card-title">Proxy Playlist M3U</h3>
               <p class="card-description">
-                  Fornisci una o pi� playlist M3U (separate da ';'). Il worker le unir� e riscriver� i canali Vavoo.
+                  Fornisci una o pi? playlist M3U (separate da ';'). Il worker le unir? e riscriver? i canali Vavoo.
               </p>
               <div class="endpoint-code">${workerDomain}/playlist?url=&lt;URL1&gt;;&lt;URL2&gt;</div>
           </div>
@@ -408,7 +412,7 @@ export default {
               });
           }
 
-          if (url.pathname === '/proxy/hls/manifest.m3u8') {
+          if (url.pathname === '/proxy/hls/manifest.m3u8' || url.pathname === '/extractor/video') {
               const targetUrl = url.searchParams.get('d');
               // api_password is explicitly ignored
 
