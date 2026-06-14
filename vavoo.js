@@ -42,82 +42,60 @@ class ExtractorError extends Error {
 class VavooExtractor {
   async getAuthSignature(clientIP) {
       const currentTime = Date.now();
-      const uniqueId = Math.random().toString(16).slice(2, 18);
       const authPayload = {
-          token: "ldCvE092e7gER0rVIajfsXIvRhwlrAzP6_1oEJ4q6HH89QHt24v6NNL_jQJO219hiLOXF2hqEfsUuEWitEIGN4EaHHEHb7Cd7gojc5SQYRFzU3XWo_kMeryAUbcwWnQrnf0-",
-          reason: "app-blur",
+          token: "",
+          reason: "app-focus",
           locale: "de",
           theme: "dark",
           metadata: {
-              device: {
-                  type: "Handset",
-                  brand: "google",
-                  model: "Nexus",
-                  name: "21081111RG",
-                  uniqueId
-              },
-              os: {
-                  name: "android",
-                  version: "7.1.2",
-                  abis: ["arm64-v8a"],
-                  host: "android"
-              },
-              app: {
-                  platform: "android",
-                  version: "1.1.0",
-                  buildId: "97215000",
-                  engine: "hbc85",
-                  signatures: ["6e8a975e3cbf07d5de823a760d4c2547f86c1403105020adee5de67ac510999e"],
-                  installer: "com.android.vending"
-              },
-              version: {
-                  package: "app.lokke.main",
-                  binary: "1.1.0",
-                  js: "1.1.0"
-              }
+              device: { type: "phone", uniqueId: "vypn-test" },
+              os: { name: "android", version: "14", abis: ["arm64-v8a"], host: "android" },
+              app: { platform: "android" },
+              version: { package: "net.vypn.app", binary: "1.4.1", js: "1.4.1" }
           },
           appFocusTime: 0,
           playerActive: false,
           playDuration: 0,
-          devMode: true,
+          devMode: false,
           hasAddon: true,
           castConnected: false,
-          package: "app.lokke.main",
-          version: "1.1.0",
+          package: "net.vypn.app",
+          version: "1.4.1",
           process: "app",
           firstAppStart: currentTime - 86400000,
           lastAppStart: currentTime,
-          ipLocation: clientIP,
-          adblockEnabled: false,
+          ipLocation: null,
+          adblockEnabled: true,
+          migrationApplied: false,
+          migrationTargetInstalled: false,
           proxy: {
-              supported: ["ss", "openvpn"],
-              engine: "openvpn",
-              ssVersion: 1,
+              supported: ["ss"],
+              engine: "Mu",
+              ssVersion: "2022",
               enabled: false,
               autoServer: true,
-              id: "fi-hel"
+              id: ""
           },
-          iap: { supported: true }
+          iap: { supported: false, error: "" }
       };
       const authHeaders = {
           "user-agent": "okhttp/4.11.0",
           "accept": "application/json",
           "content-type": "application/json; charset=utf-8",
           "accept-encoding": "gzip",
-          "X-Forwarded-For": clientIP,
-          "X-Real-IP": clientIP,
       };
-      const response = await fetch("https://www.lokke.app/api/app/ping", {
+      const response = await fetch("https://www.vypn.net/api/app/ping", {
           method: "POST",
           headers: authHeaders,
           body: JSON.stringify(authPayload)
       });
       if (!response.ok) throw new ExtractorError(`Vavoo Auth API failed: ${response.status}`);
       const result = await response.json();
-      if (!result.addonSig) throw new ExtractorError('Vavoo auth response missing addonSig.');
+      const sig = result.addonSig || result.mhub;
+      if (!sig) throw new ExtractorError('Vavoo auth response missing addonSig.');
 
       // Rewrite IPs in addonSig to use client IP
-      let addonSig = result.addonSig;
+      let addonSig = sig;
       try {
           const decoded = atob(addonSig);
           const sigObj = JSON.parse(decoded);
